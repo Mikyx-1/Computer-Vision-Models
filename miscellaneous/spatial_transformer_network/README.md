@@ -26,3 +26,4 @@ Note: Im the image, the sampler and the grid generators work in parallel to spee
 ## 3. Applications
 If you dont want your input image to be distorted (for example: 3D points classification, 3D points segmentation, ...)
  
+P/s: To gain more insights, please visit this link: https://towardsdatascience.com/spatial-transformer-tutorial-part-1-forward-and-reverse-mapping-8d3f66375bf5 
