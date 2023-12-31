@@ -5,6 +5,9 @@ A Network that helps us to retain geometric information. In contrast to Convolut
 
 For example: When you rotate the image 90 degrees, the directions have changed but the geometric information still remains. Unfortunately, for CNN, the rotated image will have the CNN output differently. 
 
+![Screenshot from 2023-12-31 16-34-11](https://github.com/Mikyx-1/Computer-Vision-Models/assets/92131994/06c6530b-d8fe-4877-8cc6-8bb586f364c0)
+
+
 ## 2. How does it work ?
 1st: The localisation net will find out the transformation matrix 
 
@@ -13,6 +16,8 @@ For example: When you rotate the image 90 degrees, the directions have changed b
 3rd: Based on the mapping pairs, the sampler will take the target values from source and map it to the output image
 
 4th: Output the geometricall transformed image  
+
+So if you rotate the image, flip it. **The output of the STN is still close to the original image**. That's the point
 
 Note: Im the image, the sampler and the grid generators work in parallel to speed up computations
 
