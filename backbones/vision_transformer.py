@@ -1,6 +1,6 @@
 # Implement Vision Transformer based on personal knowledge
 # This work is not done on research
-# Have not been trained, and needs some tests first.
+# Have been trained on Cifar-10 dataset, accuracy ~ 0.4. Increase the # params to get better performance.
 # Implemented by Mikyx-1  - 21/05/2024
 
 
