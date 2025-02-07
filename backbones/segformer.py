@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
-from timm.models.layers import DropPath, to_2tuple, trunc_normal_
-import math
+from timm.models.layers import DropPath
 
 class Mlp(nn.Module):
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
@@ -43,12 +42,11 @@ class OverlapPatchEmbed(nn.Module):
         self.layer_norm = nn.LayerNorm(embed_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        B, C, H, W = x.shape
         x = self.proj(x)
+        B, C, H, W = x.shape
         x = x.flatten(2).transpose(1, 2)
         x = self.layer_norm(x)
         return x, H, W
-    
 
 class EfficientSelfAttention(nn.Module):
     def __init__(self, dim: int, num_heads: int=8, qkv_bias: bool =False, qk_scale: float =None, attn_drop: float =0., proj_drop: float =0., sr_ratio: int =1):
@@ -113,7 +111,7 @@ class Block(nn.Module):
 
 
 class MixVisionTransformer(nn.Module):
-    def __init__(self, img_size=224, patch_size=16, in_chans=3, num_classes=1000, embed_dims=[64, 128, 256, 512],
+    def __init__(self, in_chans=3, num_classes=1000, embed_dims=[64, 128, 256, 512],
                  num_heads=[1, 2, 4, 8], mlp_ratios=[4, 4, 4, 4], qkv_bias=False, qk_scale=None, drop_rate=0.,
                  attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
                  depths=[3, 4, 6, 3], sr_ratios=[8, 4, 2, 1]):
