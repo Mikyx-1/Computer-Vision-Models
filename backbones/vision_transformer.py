@@ -166,6 +166,7 @@ class ViT(nn.Module):
 
         self.feed_forward_block = nn.Sequential(
             nn.Linear(latent_size, latent_size * 2),
+            nn.GELU(),
             nn.Linear(latent_size * 2, latent_size),
         )
 
