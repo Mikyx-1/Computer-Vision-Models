@@ -79,7 +79,7 @@ class MAEEncoder(nn.Module):
             input_dim=3 * patch_size * patch_size,
         )
         self.encoder = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(d_model=latent_dim, nhead=num_heads),
+            nn.TransformerEncoderLayer(d_model=latent_dim, nhead=num_heads, batch_first=True),
             num_layers=4,
         )
 
@@ -92,33 +92,36 @@ class MAEEncoder(nn.Module):
 
 
 class MAEDecoder(nn.Module):
-    def __init__(self, num_patches, latent_dim, decoder_dim):
+    def __init__(self, num_patches, patch_dim, latent_dim, decoder_dim):
         super().__init__()
         self.mask_token = nn.Parameter(torch.zeros(1, 1, decoder_dim))
         self.proj = nn.Linear(latent_dim, decoder_dim, bias=False)
         self.decoder = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(d_model=decoder_dim, nhead=8),
+            nn.TransformerEncoderLayer(d_model=decoder_dim, nhead=8, batch_first=True),
             num_layers=4,
         )
         self.output_layer = nn.Linear(decoder_dim, patch_dim)  # patch_dim = C * P * P
 
     def forward(self, x_encoded, ids_restore):
-        B, L, D = x_encoded.shape
+        B, L, _ = x_encoded.shape
         N = ids_restore.shape[1]
+        D = self.mask_token.shape[-1]  # Correct decoder dim (e.g., 256)
 
-        x_proj = self.proj(x_encoded)
+        x_proj = self.proj(x_encoded)  # (B, L, D)
 
-        mask_tokens = self.mask_token.expand(B, N - L, -1)
-        x_full = torch.cat([x_proj, mask_tokens], dim=1)
+        # Prepare mask tokens to fill in the masked positions
+        mask_tokens = self.mask_token.expand(B, N - L, D)
+        x_full = torch.cat([x_proj, mask_tokens], dim=1)  # (B, N, D)
 
+        # Unshuffle to the original token order
         x_unshuffled = torch.gather(
             x_full,
             dim=1,
-            index=ids_restore.unsqueeze(-1).expand(-1, -1, D),
+            index=ids_restore.unsqueeze(-1).expand(-1, -1, D),  # 🔥 Correct size here
         )
 
         x_decoded = self.decoder(x_unshuffled)
-        return self.output_layer(x_decoded)  # reconstruct patches
+        return self.output_layer(x_decoded)
 
 
 class MaskedAutoencoder(nn.Module):
@@ -132,7 +135,7 @@ class MaskedAutoencoder(nn.Module):
         self.patch_dim = 3 * patch_size * patch_size
 
         self.encoder = MAEEncoder(patch_size, img_size, latent_dim, num_heads=8)
-        self.decoder = MAEDecoder(self.num_patches, latent_dim, decoder_dim)
+        self.decoder = MAEDecoder(self.num_patches, self.patch_dim, latent_dim, decoder_dim)
 
     def forward(self, imgs, mask_ratio=0.75):
         x_encoded, mask, ids_restore = self.encoder(imgs, mask_ratio)
@@ -141,6 +144,13 @@ class MaskedAutoencoder(nn.Module):
 
 
 def mae_loss(patches, recon, mask):
+    """
+    patches: (B, N, patch_dim)
+    recon:   (B, N, patch_dim)
+    mask:    (B, N)
+    """
     loss = (recon - patches) ** 2
-    loss = loss.mean(dim=-1)
+    loss = loss.mean(dim=-1)  # shape: (B, N)
+    
+    # Apply mask (expand not needed now)
     return (loss * mask).sum() / mask.sum()
