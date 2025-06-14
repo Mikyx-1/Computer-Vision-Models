@@ -92,8 +92,9 @@ class EmbeddingLayer(nn.Module):
         self.num_patches = num_patches
         self.pos_embedder = nn.Linear(1, latent_size)
         self.input_embedder = nn.Linear(input_dim, latent_size)
-        self.positional_information = (
-            torch.arange(0, self.num_patches).reshape(1, num_patches, 1).float()
+        self.register_buffer(
+            "positional_information",
+            torch.arange(0, self.num_patches).reshape(1, num_patches, 1).float(),
         )
 
     def forward(self, input):
@@ -176,7 +177,11 @@ class ViT(nn.Module):
         x = self.patchifier(x)
         x = self.embedding_layer(x)
 
-        x = self.norm_1(self.multi_head_attn(x, x, x)[0] + x)
+        x = x.transpose(0, 1)  # (num_patches, batch_size, latent_size)
+        attn_output, _ = self.multi_head_attn(x, x, x)
+        x += attn_output
+        x = x.transpose(0, 1)  # Back to (batch_size, num_patches, latent_size)
+        x = self.norm_1(x)
 
         x = self.norm_2(self.feed_forward_block(x) + x)
 
